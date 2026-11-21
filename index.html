@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Редактор скинов MultiCraft</title>
-    <link rel="stylesheet" href="https://pyscript.net">
-    <script type="module" src="https://pyscript.net"></script>
     <style>
         :root {
             --bg: #12151c; --card: #1c212c; --text: #e2e8f0;
@@ -19,12 +17,12 @@
         }
         .container {
             background: var(--card); border: 1px solid var(--border); border-radius: 16px;
-            padding: 28px; width: 100%; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+            padding: 24px; width: 100%; max-width: 480px; box-shadow: 0 10px 30px rgba(0,0,0,0.4);
         }
-        h1 { margin: 0 0 8px; font-size: 22px; text-align: center; }
-        .subtitle { color: var(--muted); font-size: 14px; text-align: center; margin-bottom: 24px; }
+        h1 { margin: 0 0 6px; font-size: 21px; text-align: center; }
+        .subtitle { color: var(--muted); font-size: 13px; text-align: center; margin-bottom: 20px; }
         .step {
-            margin-bottom: 18px; padding: 14px; background: rgba(0,0,0,0.2);
+            margin-bottom: 16px; padding: 14px; background: rgba(0,0,0,0.2);
             border-radius: 10px; border: 1px solid var(--border);
         }
         .step label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
@@ -36,11 +34,11 @@
         input[type="color"] { width: 50px; height: 40px; border: none; border-radius: 8px; background: none; cursor: pointer; }
         button {
             width: 100%; padding: 14px; background: var(--accent); color: white; border: none;
-            border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 8px;
+            border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 6px;
         }
         button:hover:not(:disabled) { background: var(--accent-hover); }
         button:disabled { opacity: 0.4; cursor: not-allowed; }
-        .status { margin-top: 16px; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; display: none; }
+        .status { margin-top: 14px; padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.4; display: none; }
         .status.error { display: block; background: rgba(239,68,68,0.15); border: 1px solid var(--danger); color: #fca5a5; }
         .status.success { display: block; background: rgba(34,197,94,0.15); border: 1px solid var(--success); color: #86efac; }
         .status.info { display: block; background: rgba(59,130,246,0.15); border: 1px solid var(--accent); color: #93c5fd; }
@@ -50,48 +48,48 @@
             border-radius: 6px; display: none;
             background: repeating-conic-gradient(#2e3646 0% 25%, #1c212c 0% 50%) 50% / 12px 12px;
         }
-        #loader { text-align: center; color: var(--muted); font-size: 14px; padding: 20px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h1>Редактор скинов MultiCraft</h1>
-    <div class="subtitle">Замена скина (128×128) и цвета ника без консоли</div>
-    <div id="loader">⏳ Загрузка Python-движка (2–3 сек)...</div>
+    <div class="subtitle">Замена скина (128×128) и цвета ника</div>
 
-    <div id="app" style="display: none;">
-        <div class="step">
-            <label>1. Загрузите файл multicraft.conf</label>
-            <input type="file" id="confInput" accept=".conf,.txt">
-        </div>
-        <div class="step">
-            <label>2. Загрузите скин (строго 128×128 PNG)</label>
-            <input type="file" id="skinInput" accept="image/png">
-            <div class="preview-box">
-                <img id="skinPreview" alt="Превью">
-                <span id="skinInfo" style="font-size: 13px; color: var(--muted);">Файл не выбран</span>
-            </div>
-        </div>
-        <div class="step">
-            <label>3. Выберите слот для замены</label>
-            <select id="slotSelect" disabled>
-                <option value="">Сначала загрузите multicraft.conf</option>
-            </select>
-        </div>
-        <div class="step">
-            <label>4. Цвет никнейма (подтягивается из слота)</label>
-            <div class="color-row">
-                <input type="color" id="colorPicker" value="#ffffff" disabled>
-                <input type="text" id="hexInput" value="#FFFFFF" maxlength="7" disabled>
-            </div>
-        </div>
-        <button id="saveBtn" disabled>Применить и скачать multicraft.conf</button>
-        <div id="statusBox" class="status"></div>
+    <div class="step">
+        <label>1. Загрузите файл multicraft.conf</label>
+        <input type="file" id="confInput" accept=".conf,.txt">
     </div>
+
+    <div class="step">
+        <label>2. Загрузите скин (строго 128×128 PNG)</label>
+        <input type="file" id="skinInput" accept="image/png">
+        <div class="preview-box">
+            <img id="skinPreview" alt="Превью">
+            <span id="skinInfo" style="font-size: 13px; color: var(--muted);">Файл не выбран</span>
+        </div>
+    </div>
+
+    <div class="step">
+        <label>3. Выберите слот для замены</label>
+        <select id="slotSelect" disabled>
+            <option value="">Сначала загрузите multicraft.conf</option>
+        </select>
+    </div>
+
+    <div class="step">
+        <label>4. Цвет никнейма (подтягивается из слота)</label>
+        <div class="color-row">
+            <input type="color" id="colorPicker" value="#ffffff" disabled>
+            <input type="text" id="hexInput" value="#FFFFFF" maxlength="7" disabled>
+        </div>
+    </div>
+
+    <button id="saveBtn" disabled>Применить и скачать multicraft.conf</button>
+    <div id="statusBox" class="status"></div>
 </div>
 
 <canvas id="hiddenCanvas" width="128" height="128" style="display:none;"></canvas>
-<script type="py" src="./main.py"></script>
+<script src="./app.js"></script>
 </body>
 </html>

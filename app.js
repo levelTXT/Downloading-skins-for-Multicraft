@@ -86,6 +86,12 @@ $("confInput").addEventListener("change", async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    if (file.size === 0) {
+        state.confReady = false;
+        updateButton();
+        return showStatus("Файл пустой (0 байт)! Скопируйте multicraft.conf в папку Download и выберите его оттуда.", "error");
+    }
+
     const text = await file.text();
     const lines = text.split(/(?<=\n)/);
     const prefix = "edit_skin.saves =";
@@ -128,7 +134,7 @@ $("confInput").addEventListener("change", async (e) => {
         $("hexInput").disabled = false;
         syncColorFromSlot();
         updateButton();
-        showStatus(`Конфиг загружен! Найдено слотов: ${slots.length}.`, "info");
+        showStatus(`Конфиг загружен (${file.size} байт)! Найдено слотов: ${slots.length}.`, "info");
     } catch (err) {
         state.confReady = false;
         updateButton();

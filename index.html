@@ -58,7 +58,7 @@
 <div class="container">
     <h1>Редактор скинов MultiCraft</h1>
     <div class="subtitle">Замена скина (128×128) и цвета ника без консоли</div>
-    <div id="loader">⏳ Загрузка Python-движка (3–5 сек)...</div>
+    <div id="loader">⏳ Загрузка Python-движка (2–3 сек)...</div>
 
     <div id="app" style="display: none;">
         <div class="step">
@@ -91,6 +91,7 @@
     </div>
 </div>
 
-<script type="py" src="./main.py" config="./pyscript.toml"></script>
+<canvas id="hiddenCanvas" width="128" height="128" style="display:none;"></canvas>
+<script type="py" src="./main.py"></script>
 </body>
 </html>

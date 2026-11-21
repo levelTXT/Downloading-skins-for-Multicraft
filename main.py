@@ -1,8 +1,6 @@
-import io
 import json
 import zlib
 import base64
-from PIL import Image
 from pyscript import document, window
 from pyodide.ffi import create_proxy
 
@@ -113,50 +111,52 @@ async def on_conf_upload(event):
     update_button_state()
     show_status(f"Конфиг загружен! Найдено слотов: {len(slots)}.", "info")
 
-async def on_skin_upload(event):
+def on_skin_upload(event):
     files = event.target.files
     if not files or files.length == 0:
         return
-    array_buf = await files.item(0).arrayBuffer()
-    raw_bytes = bytes(array_buf.to_py())
+    file = files.item(0)
+    url = window.URL.createObjectURL(file)
+    img = window.Image.new()
 
-    preview = document.getElementById("skinPreview")
-    info = document.getElementById("skinInfo")
+    def on_img_load(e):
+        w, h = img.width, img.height
+        preview = document.getElementById("skinPreview")
+        info = document.getElementById("skinInfo")
 
-    try:
-        img = Image.open(io.BytesIO(raw_bytes))
-        w, h = img.size
         if (w, h) != (128, 128):
             state["skin_ready"] = False
             update_button_state()
             preview.style.display = "none"
             info.innerText = f"Ошибка размера: {w}×{h} px"
             show_status(f"Картинка должна быть строго 128×128 px! Ваша: {w}×{h}.", "error")
+            window.URL.revokeObjectURL(url)
             return
 
-        img = img.convert("RGBA")
-        pixels = img.load()
+        canvas = document.getElementById("hiddenCanvas")
+        ctx = canvas.getContext("2d")
+        ctx.clearRect(0, 0, 128, 128)
+        ctx.drawImage(img, 0, 0)
+        pixels = ctx.getImageData(0, 0, 128, 128).data.to_py()
+
         color_array = []
-        for y in range(128):
-            for x in range(128):
-                r, g, b, a = pixels[x, y]
-                color_array.append(None if a < 10 else f"#{r:02X}{g:02X}{b:02X}")
+        for i in range(0, len(pixels), 4):
+            r, g, b, a = pixels[i], pixels[i+1], pixels[i+2], pixels[i+3]
+            color_array.append(None if a < 10 else f"#{r:02X}{g:02X}{b:02X}")
 
         state["canvas_array"] = color_array
         state["skin_ready"] = True
 
-        b64_img = base64.b64encode(raw_bytes).decode("utf-8")
-        preview.src = f"data:image/png;base64,{b64_img}"
+        preview.src = url
         preview.style.display = "block"
         info.innerText = "Размер 128×128 подтверждён ✅"
 
         update_button_state()
         if state["conf_ready"]:
             show_status("Всё готово! Нажмите кнопку ниже, чтобы скачать файл.", "info")
-    except Exception as e:
-        state["skin_ready"] = False
-        update_button_state()
-        show_status(f"Не удалось прочитать PNG: {e}", "error")
+
+    img.onload = create_proxy(on_img_load)
+    img.src = url
 
 def on_slot_change(event):
     sync_color_from_slot()

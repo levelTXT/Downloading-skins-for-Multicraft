@@ -26,10 +26,11 @@
             border-radius: 10px; border: 1px solid var(--border);
         }
         .step label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
-        input[type="file"], select, input[type="text"] {
+        input[type="file"], select, input[type="text"], textarea {
             width: 100%; padding: 10px; background: var(--bg);
             border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 14px;
         }
+        textarea { resize: vertical; min-height: 70px; margin-top: 8px; font-family: monospace; font-size: 12px; }
         .color-row { display: flex; gap: 10px; align-items: center; }
         input[type="color"] { width: 50px; height: 40px; border: none; border-radius: 8px; background: none; cursor: pointer; }
         button {
@@ -48,6 +49,7 @@
             border-radius: 6px; display: none;
             background: repeating-conic-gradient(#2e3646 0% 25%, #1c212c 0% 50%) 50% / 12px 12px;
         }
+        .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
     </style>
 </head>
 <body>
@@ -57,8 +59,10 @@
     <div class="subtitle">Замена скина (128×128) и цвета ника</div>
 
     <div class="step">
-        <label>1. Загрузите файл multicraft.conf</label>
-        <input type="file" id="confInput" accept=".conf,.txt">
+        <label>1. Загрузите multicraft.conf (или вставьте текст)</label>
+        <input type="file" id="confInput">
+        <div class="hint">Если Android отдает 0 байт — вставьте содержимое файла ниже:</div>
+        <textarea id="confPaste" placeholder="Или вставьте сюда текст из multicraft.conf..."></textarea>
     </div>
 
     <div class="step">

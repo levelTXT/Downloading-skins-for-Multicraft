@@ -24,8 +24,7 @@ async function decodeSavesString(b64Str) {
     if (rem) clean += "=".repeat(4 - rem);
 
     const binary = atob(clean);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
 
     const ds = new DecompressionStream("deflate");
     const writer = ds.writable.getWriter();
@@ -51,7 +50,7 @@ async function encodeSavesString(dataObj) {
 
     let binary = "";
     for (let i = 0; i < compressed.length; i++) {
-        binary += String.fromCharCode(compressed[i]);
+        binary += String.fromCharCode(compressed.at(i));
     }
     return btoa(binary);
 }
@@ -77,22 +76,12 @@ function hexToRgb(hex) {
 function syncColorFromSlot() {
     const idx = Number($("slotSelect").value);
     if (!state.slotsData || isNaN(idx)) return;
-    const hex = rgbToHex(state.slotsData[idx].nametag_color);
+    const hex = rgbToHex(state.slotsData.at(idx).nametag_color);
     $("colorPicker").value = hex.toLowerCase();
     $("hexInput").value = hex;
 }
 
-$("confInput").addEventListener("change", async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    if (file.size === 0) {
-        state.confReady = false;
-        updateButton();
-        return showStatus("Файл пустой (0 байт)! Скопируйте multicraft.conf в папку Download и выберите его оттуда.", "error");
-    }
-
-    const text = await file.text();
+async function processConfText(text) {
     const lines = text.split(/(?<=\n)/);
     const prefix = "edit_skin.saves =";
     let encodedVal = null;
@@ -134,16 +123,71 @@ $("confInput").addEventListener("change", async (e) => {
         $("hexInput").disabled = false;
         syncColorFromSlot();
         updateButton();
-        showStatus(`Конфиг загружен (${file.size} байт)! Найдено слотов: ${slots.length}.`, "info");
+        showStatus(`Конфиг загружен! Найдено слотов: ${slots.length}.`, "info");
     } catch (err) {
         state.confReady = false;
         updateButton();
         showStatus(`Ошибка расшифровки сохранений: ${err.message}`, "error");
     }
+}
+
+async function readBlobSafe(file) {
+    // 1. Пробуем современный arrayBuffer()
+    const buf = await file.arrayBuffer();
+    if (buf.byteLength > 0) {
+        return new TextDecoder("utf-8").decode(buf);
+    }
+    // 2. Пробуем чтение через поток (обходит баг 0 байт в некоторых версиях Chrome)
+    const reader = file.stream().getReader();
+    const chunks = [];
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) chunks.push(value);
+    }
+    const totalLen = chunks.reduce((acc, c) => acc + c.length, 0);
+    if (totalLen > 0) {
+        const merged = new Uint8Array(totalLen);
+        let offset = 0;
+        for (const c of chunks) {
+            merged.set(c, offset);
+            offset += c.length;
+        }
+        return new TextDecoder("utf-8").decode(merged);
+    }
+    return "";
+}
+
+$("confInput").addEventListener("change", async (e) => {
+    const file = e.target.files.item(0);
+    if (!file) return;
+
+    try {
+        const content = await readBlobSafe(file);
+        if (!content || content.length === 0) {
+            state.confReady = false;
+            updateButton();
+            return showStatus(
+                `Chrome на Android заблокировал расширение "${file.name}" (отдал 0 байт). Переименуйте файл в multicraft.txt или вставьте его текст в поле ниже.`,
+                "error"
+            );
+        }
+        $("confPaste").value = content;
+        await processConfText(content);
+    } catch (err) {
+        showStatus(`Ошибка чтения файла: ${err.message}`, "error");
+    }
+});
+
+$("confPaste").addEventListener("input", async (e) => {
+    const val = e.target.value;
+    if (val.includes("edit_skin.saves")) {
+        await processConfText(val);
+    }
 });
 
 $("skinInput").addEventListener("change", (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files.item(0);
     if (!file) return;
 
     const url = URL.createObjectURL(file);
@@ -168,7 +212,7 @@ $("skinInput").addEventListener("change", (e) => {
         const toHex = n => n.toString(16).padStart(2, "0").toUpperCase();
 
         for (let i = 0; i < data.length; i += 4) {
-            const r = data[i], g = data[i + 1], b = data[i + 2], a = data[i + 3];
+            const r = data.at(i), g = data.at(i + 1), b = data.at(i + 2), a = data.at(i + 3);
             colorArray.push(a < 10 ? null : `#${toHex(r)}${toHex(g)}${toHex(b)}`);
         }
 
@@ -215,7 +259,7 @@ $("saveBtn").addEventListener("click", async () => {
         const slotIdx = Number($("slotSelect").value);
         const newRgb = hexToRgb($("hexInput").value.trim());
 
-        const targetSlot = state.slotsData[slotIdx];
+        const targetSlot = state.slotsData.at(slotIdx);
         if (!targetSlot.skin) targetSlot.skin = {};
         targetSlot.skin.canvas = state.canvasArray;
         targetSlot.skin.use_canvas = true;
@@ -240,7 +284,10 @@ $("saveBtn").addEventListener("click", async () => {
             newLines.push(`\n${prefix} ${newEncoded}\n`);
         }
 
-        const blob = new Blob([newLines.join("")], { type: "text/plain;charset=utf-8" });
+        const finalConf = newLines.join("");
+        $("confPaste").value = finalConf;
+
+        const blob = new Blob([finalConf], { type: "text/plain;charset=utf-8" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement("a");
         a.href = url;
@@ -250,7 +297,7 @@ $("saveBtn").addEventListener("click", async () => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showStatus(`Готово! Слот №${slotIdx + 1} обновлен, файл multicraft.conf скачан.`, "success");
+        showStatus(`Готово! Слот №${slotIdx + 1} обновлен. Файл multicraft.conf скачан (и обновлен в поле выше).`, "success");
     } catch (err) {
         showStatus(`Ошибка при сборке конфига: ${err.message}`, "error");
     }
